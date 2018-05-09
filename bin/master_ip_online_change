@@ -164,17 +164,17 @@ sub main {
             $list->{'user'}, $list->{'pass'}, "", 1); 
           next unless $proxysql_handler->{dbh};
 
-          # delete repl group
-          if ($proxysql_handler->proxysql_delete_repl_group($list->{'wgroup'}, 
-             $list->{'rgroup'})) {
-            carp " delete proxysql repl group error!";
-          }   
+          # OFFLINE_SOFT orig server
+          if ($proxysql_handler->proxysql_set_status_server('OFFLINE_SOFT',
+                $orig_master_ip, $orig_master_port)) {
+            carp "OFFLINE_SOFT orig server error!";
+          }
           else {
             print current_time_us()
-                  . " delete proxysql repl group on "
-                  . $list->{'ip'} . ":" . $list->{'port'}
-                  . " ok!\n"
-          }   
+                  . " OFFLINE_SOFT proxysql servers "
+                  . "$orig_master_ip:$orig_master_port"
+                  . " ok!\n";
+          }
           if ($proxysql_handler->proxysql_load_server_to_runtime()) {
             carp " load servers to runtime error!";
           }
@@ -373,68 +373,24 @@ sub main {
                  . $list->{ip} . ":" . $list->{port}
                  . " readwrite ok!\n"
           }
-          # delete old read/write group with original master
-          if ($proxysql_handler->proxysql_delete_group($list->{wgroup},
-             $list->{rgroup}, $orig_master_host, $orig_master_port)) {
-            carp "delete old proxysql write group error!";
-          }
-          else {
-            print current_time_us()
-                 . " Delete old proxysql write group "
-                 . "$orig_master_host:$orig_master_port"
-                 . " with group " . $list->{'wgroup'} . " ok!\n";
-
-          }
-          # insert new write group
-          if ($proxysql_handler->proxysql_insert_new_server($list->{'wgroup'},
-                $new_master_host, $new_master_port, 0)) {
-            carp "insert new write group error!";
-          }
-          else {
-            print current_time_us()
-                  . " Insert new proxysql write group "
-                  . "$new_master_host:$new_master_port"
-                  . " with group " . $list->{'wgroup'} . " ok!\n";
-          }
-
-          # insert new read group
-          if ($proxysql_handler->proxysql_insert_new_server($list->{'rgroup'},
-                $new_master_host, $new_master_port, 0)) {
-            carp "insert new read group error!";
-          }
-          else {
-            print current_time_us()
-                  . " Insert new proxysql read group "
-                  . "$new_master_host:$new_master_port"
-                  . " with group " . $list->{'rgroup'} . " ok!\n";
-          }
+          
           # insert orig master as new slave
           my $orig_master_handler = new Extra::MHA::DBHelper();
           $orig_master_handler->connect( $orig_master_ip, $orig_master_port,
               $orig_master_user, $orig_master_password, 1 );
           if ($orig_master_handler->is_read_only()) {
-            if ($proxysql_handler->proxysql_insert_new_server($list->{'rgroup'}, 
-                $orig_master_host, $orig_master_port, 30)) {
-               carp "insert orig master as read group error!";
+            if ($proxysql_handler->proxysql_set_status_hostgroup_server('ONLINE',
+                $orig_master_host, $orig_master_port, $list->{'rgroup'})) {
+               carp "set orig master rgroup ONLINE error!";
             }
             else {
               print current_time_us() 
-                    . " Insert orig master as new proxysql read group "
+                    . " set orig master rgroup ONLINE "
                     . "$orig_master_host:$orig_master_port"
                     . " with group " . $list->{'rgroup'} . " ok!\n";
             }
           }
-          # insert new repl group
-          if ($proxysql_handler->proxysql_insert_repl_group($list->{'wgroup'},
-             $list->{'rgroup'})) {
-            carp " insert proxysql repl group error!";
-          }
-          else {
-            print current_time_us()
-                  . " insert proxysql repl group on "
-                  . $list->{'ip'} . ":" . $list->{'port'}
-                  . " ok!\n"
-          }
+          
           # load mysql servers to runtime.
           if ($proxysql_handler->proxysql_load_server_to_runtime()) {
             carp "proxysql load mysql server to runtime error!";

@@ -155,7 +155,7 @@ sub _proxysql_parse {
   my $list = shift;
   my @proxysql = ();
   my $n = 0;
-  # such as: admin:admin@10.0.21.5:6032:r1:w2,admin:admin@10.0.21.7:6032:r1:w2
+  # such as: admin:admin@10.0.21.5:6032:w1:r2,admin:admin@10.0.21.7:6032:w1:r2
   foreach (split(/,/, $list)) {
     if (/(\S+?):(\S+?)\@(\S+?):(\d+):w(\d+):r(\d+)/) {
       $proxysql[$n]->{user} = $1;
@@ -545,6 +545,11 @@ use constant Proxysql_Insert_New_Server =>
   "REPLACE INTO mysql_servers " . 
   "(hostgroup_id, hostname, port, status, weight, max_connections, max_replication_lag) " .
   "VALUES (?, ?, ?, ?, ?, ?, ?)";
+use constant Proxysql_Set_Status_Server =>
+  "UPDATE mysql_servers set status = ? where hostname = ? AND port = ?";
+use constant Proxysql_Set_Status_Hostgroup_Server =>
+  "UPDATE mysql_servers set status = ? where hostname = ? AND port = ? and hostgroup_id = ?";
+
 
 sub new {
   my ($class) = @_;
@@ -672,6 +677,39 @@ sub proxysql_insert_new_server {
     eval{
       $self->{dbh}->do(Proxysql_Insert_New_Server, undef, $group, $host, $port, 
             'ONLINE', 1000, 2000, $lag);
+    };
+    if ($@) {
+      $failure++;
+    }
+  }
+  else {
+    $failure++;
+  }
+  return $failure;
+}
+
+sub proxysql_set_status_server {
+  my ($self, $status, $host, $port) = @_;
+  my $failure = 0;
+  if ($group && $host && $port) {
+    eval{
+      $self->{dbh}->do(Proxysql_Set_Status_Server, undef, $status, $host, $port);
+    };
+    if ($@) {
+      $failure++;
+    }
+  }
+  else {
+    $failure++;
+  }
+  return $failure;
+}
+sub proxysql_set_status_hostgroup_server {
+  my ($self, $status, $host, $port, $hostgroup_id) = @_;
+  my $failure = 0;
+  if ($group && $host && $port) {
+    eval{
+      $self->{dbh}->do(Proxysql_Set_Status_Hostgroup_Server, undef, $status, $host, $port, $hostgroup_id);
     };
     if ($@) {
       $failure++;
