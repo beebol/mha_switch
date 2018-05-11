@@ -216,8 +216,8 @@ sub main {
           }
 
           # set proxysql mew master lag = 0
-          if ($proxysql_handler->proxysql_set_lag_servers(
-                $new_master_ip, $new_master_port, 0)) {
+          if ($proxysql_handler->proxysql_set_lag_servers( 0,
+                $new_master_ip, $new_master_port)) {
             carp "set proxysql mew master lag = 0 error!";
           }
           else {
