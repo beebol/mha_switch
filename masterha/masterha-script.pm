@@ -690,12 +690,12 @@ sub proxysql_insert_new_server {
   return $failure;
 }
 
-sub proxysql_set_lag_server {
+sub proxysql_set_lag_servers {
   my ($self, $host, $port, $lag) = @_;
   my $failure = 0;
   if ($host && $port && $lag) {
     eval{
-      $self->{dbh}->do(Proxysql_Set_Lag_Server, undef, $lag,  $host, $port);
+      $self->{dbh}->do(Proxysql_Set_Lag_Server, undef, $lag, $host, $port);
     };
     if ($@) {
       $failure++;
