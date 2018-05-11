@@ -549,6 +549,8 @@ use constant Proxysql_Set_Status_Server =>
   "UPDATE mysql_servers set status = ? where hostname = ? AND port = ?";
 use constant Proxysql_Set_Status_Hostgroup_Server =>
   "UPDATE mysql_servers set status = ? where hostname = ? AND port = ? and hostgroup_id = ?";
+use constant Proxysql_Set_Lag_Server =>
+  "UPDATE mysql_servers set max_replication_lag = ? where hostname = ? AND port = ?";
 
 
 sub new {
@@ -688,10 +690,27 @@ sub proxysql_insert_new_server {
   return $failure;
 }
 
+sub proxysql_set_lag_server {
+  my ($self, $host, $port, $lag) = @_;
+  my $failure = 0;
+  if ($host && $port && $lag) {
+    eval{
+      $self->{dbh}->do(Proxysql_Set_Lag_Server, undef, $lag,  $host, $port);
+    };
+    if ($@) {
+      $failure++;
+    }
+  }
+  else {
+    $failure++;
+  }
+  return $failure;
+}
+
 sub proxysql_set_status_server {
   my ($self, $status, $host, $port) = @_;
   my $failure = 0;
-  if ($group && $host && $port) {
+  if ($status && $host && $port) {
     eval{
       $self->{dbh}->do(Proxysql_Set_Status_Server, undef, $status, $host, $port);
     };
@@ -707,7 +726,7 @@ sub proxysql_set_status_server {
 sub proxysql_set_status_hostgroup_server {
   my ($self, $status, $host, $port, $hostgroup_id) = @_;
   my $failure = 0;
-  if ($group && $host && $port) {
+  if ($status && $host && $port && $hostgroup_id) {
     eval{
       $self->{dbh}->do(Proxysql_Set_Status_Hostgroup_Server, undef, $status, $host, $port, $hostgroup_id);
     };
